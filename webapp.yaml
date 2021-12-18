@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webapp-deployment
+  labels:
+    app: webapp
+#deployment specific configuration
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: webapp
+  #blueprint of pods defined as template (configuration of the pod within the configuration if deployment)
+  #configure the pod
+  template:
+    metadata:
+      labels:
+        app: webapp
+    spec:
+      #defintion of the containers (which image, which ports)
+      containers:
+      - name: webapp
+        image: nanajanashia/k8s-demo-app:v1.0
+        ports:
+        - containerPort: 3000
+        env:
+        - name: USER_NAME
+          valueFrom:
+            secretKeyRef:
+              name: mongo-secret
+              key: mongo-user 
+        - name: USER_PWD
+          valueFrom:
+            secretKeyRef:
+              name: mongo-secret
+              key: mongo-password
+        - name: DB_URL
+          valueFrom:
+            configMapKeyRef:
+              name: mongo-config
+              key: mongo-url
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: webapp-service
+spec:
+  #to make the service external to make app accessible from the browser
+  #the services are 2 internal we have to make this service external
+  #by default type is ClusterIP
+  type: NodePort #external service type requires third port
+  selector:
+    app: webapp
+  ports:
+    - protocol: TCP
+      port: 3000
+      targetPort: 3000
+      #port which will open on the k8s node on which the app will be accessible
+      #must be in [30000 - 32767]
+      nodePort: 30100
